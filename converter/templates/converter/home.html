@@ -1,70 +1,126 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Currency Converter</title>
-    <style>
-        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
-        select, input { padding: 8px; margin: 5px; font-size: 16px; }
-        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; font-size: 16px; border-radius: 4px; }
-        button:hover { background: #0056b3; }
-        .result { background: #f0f8ff; padding: 20px; margin-top: 20px; border-radius: 8px; }
-        .error { background: #fff0f0; color: red; padding: 20px; margin-top: 20px; border-radius: 8px; }
-        .result h2 { margin-top: 0; }
-    </style>
+
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <!-- Notre CSS -->
+    <link rel="stylesheet" href="{% static 'converter/css/style.css' %}">
 </head>
 <body>
-    <h1>💱 Convertisseur de Devises</h1>
+<div class="card">
+    <h1>
+        <i class="fa-solid fa-money-bill-transfer"></i>
+        Convertisseur de Devises
+    </h1>
 
-    <form method="POST">
+    <form method="POST" id="converter-form">
         {% csrf_token %}
 
-        <div>
-            <label>Montant :</label><br>
-            <input type="number" name="amount" value="1" min="0.01" step="0.01" required>
+        <!-- Montant -->
+        <div class="form-group">
+            <label><i class="fa-solid fa-coins"></i> Montant</label>
+            <input
+                class="amount-input"
+                type="number"
+                name="amount"
+                value="{{ request.POST.amount|default:'1' }}"
+                min="0.01"
+                step="0.01"
+                required
+            >
         </div>
 
-        <div style="margin-top: 10px;">
-            <label>De :</label>
-            <select name="from_currency">
-                {% for currency in currencies %}
-                    <option value="{{ currency.code }}">
-                        {{ currency.flag }} {{ currency.code }} — {{ currency.name }}
-                    </option>
-                {% endfor %}
-            </select>
-
-            <label>→ Vers :</label>
-            <select name="to_currency">
-                {% for currency in currencies %}
-                    <option value="{{ currency.code }}" {% if currency.code == 'USD' %}selected{% endif %}>
-                        {{ currency.flag }} {{ currency.code }} — {{ currency.name }}
-                    </option>
-                {% endfor %}
-            </select>
+        <!-- De -->
+        <div class="form-group">
+            <label><i class="fa-solid fa-arrow-right-from-bracket"></i> De</label>
+            <div class="select-with-flag">
+                <img id="flag-from" src="https://flagcdn.com/w40/eu.png" alt="flag">
+                <select name="from_currency" id="select-from" onchange="updateFlag('from')">
+                    {% for currency in currencies %}
+                        <option
+                            value="{{ currency.code }}"
+                            data-country="{{ currency.country }}"
+                            {% if request.POST.from_currency == currency.code %}selected{% endif %}
+                        >
+                            {{ currency.code }} — {{ currency.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
 
-        <br>
-        <button type="submit">Convertir</button>
+        <!-- Flèche -->
+        <div class="arrow-row">
+            <div class="line"></div>
+            <i class="fa-solid fa-right-left"></i>
+            <div class="line"></div>
+        </div>
+
+        <!-- Vers -->
+        <div class="form-group">
+            <label><i class="fa-solid fa-arrow-right-to-bracket"></i> Vers</label>
+            <div class="select-with-flag">
+                <img id="flag-to" src="https://flagcdn.com/w40/us.png" alt="flag">
+                <select name="to_currency" id="select-to" onchange="updateFlag('to')">
+                    {% for currency in currencies %}
+                        <option
+                            value="{{ currency.code }}"
+                            data-country="{{ currency.country }}"
+                            {% if currency.code == 'USD' and not request.POST.to_currency %}selected
+                            {% elif request.POST.to_currency == currency.code %}selected{% endif %}
+                        >
+                            {{ currency.code }} — {{ currency.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <button type="submit" class="btn-convert">
+            <i class="fa-solid fa-calculator"></i>
+            Convertir
+        </button>
     </form>
 
     {% if error %}
-        <div class="error">⚠️ {{ error }}</div>
-    {% endif %}
-
-    {% if result %}
-        <div class="result">
-            <h2>Résultat</h2>
-            <p style="font-size: 1.3em;">
-                <strong>{{ result.amount }} {{ result.from.flag }} {{ result.from.code }}</strong>
-                =
-                <strong>{{ result.converted }} {{ result.to.flag }} {{ result.to.code }}</strong>
-            </p>
-            <p style="color: #555;">
-                {{ result.from.flag }} {{ result.from.name }} → {{ result.to.flag }} {{ result.to.name }}
-            </p>
+        <div class="error-box">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            {{ error }}
         </div>
     {% endif %}
 
+    {% if result %}
+        <div class="result-box">
+            <div class="label"><i class="fa-solid fa-check-circle"></i> Résultat</div>
+            <div class="amount-display">
+                <img src="https://flagcdn.com/w40/{{ result.from.country }}.png" alt="{{ result.from.code }}">
+                {{ result.amount }} {{ result.from.code }}
+                <i class="fa-solid fa-equals" style="font-size:0.7em; color:#007bff;"></i>
+                <img src="https://flagcdn.com/w40/{{ result.to.country }}.png" alt="{{ result.to.code }}">
+                {{ result.converted }} {{ result.to.code }}
+            </div>
+            <div class="rate-info">
+                <i class="fa-solid fa-chart-line"></i>
+                {{ result.from.name }} → {{ result.to.name }}
+            </div>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    function updateFlag(direction) {
+        const select = document.getElementById('select-' + direction);
+        const img = document.getElementById('flag-' + direction);
+        const selected = select.options[select.selectedIndex];
+        const country = selected.getAttribute('data-country');
+        img.src = 'https://flagcdn.com/w40/' + country + '.png';
+    }
+</script>
 </body>
-</html>
+</html> 

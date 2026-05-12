@@ -1,21 +1,19 @@
 import requests
 
 SUPPORTED_CURRENCIES = [
-    {'code': 'EUR', 'flag': '🇪🇺', 'name': 'Euro'},
-    {'code': 'USD', 'flag': '🇺🇸', 'name': 'Dollar américain'},
-    {'code': 'GBP', 'flag': '🇬🇧', 'name': 'Livre sterling'},
-    {'code': 'JPY', 'flag': '🇯🇵', 'name': 'Yen japonais'},
-    {'code': 'CHF', 'flag': '🇨🇭', 'name': 'Franc suisse'},
-    {'code': 'CAD', 'flag': '🇨🇦', 'name': 'Dollar canadien'},
-    {'code': 'AUD', 'flag': '🇦🇺', 'name': 'Dollar australien'},
-    {'code': 'XAF', 'flag': '🇨🇬', 'name': 'Franc CFA (Afrique Centrale)'},
+    {'code': 'EUR', 'country': 'eu', 'name': 'Euro'},
+    {'code': 'USD', 'country': 'us', 'name': 'Dollar américain'},
+    {'code': 'GBP', 'country': 'gb', 'name': 'Livre sterling'},
+    {'code': 'JPY', 'country': 'jp', 'name': 'Yen japonais'},
+    {'code': 'CHF', 'country': 'ch', 'name': 'Franc suisse'},
+    {'code': 'CAD', 'country': 'ca', 'name': 'Dollar canadien'},
+    {'code': 'AUD', 'country': 'au', 'name': 'Dollar australien'},
+    {'code': 'XAF', 'country': 'cg', 'name': 'Franc CFA'},
 ]
 
+XAF_PER_EUR = 655.957
+
 def get_exchange_rate(from_currency: str, to_currency: str) -> float | None:
-    """
-    Récupère le taux de change entre deux devises.
-    Retourne le taux ou None en cas d'erreur.
-    """
     try:
         url = f'https://api.frankfurter.app/latest?from={from_currency}&to={to_currency}'
         response = requests.get(url, timeout=5)
