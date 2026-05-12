@@ -3,9 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <title>Currency Converter</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 600px; margin: 50px auto; padding: 20px; }
+        select, input { padding: 8px; margin: 5px; font-size: 16px; }
+        button { padding: 10px 20px; background: #007bff; color: white; border: none; cursor: pointer; font-size: 16px; border-radius: 4px; }
+        button:hover { background: #0056b3; }
+        .result { background: #f0f8ff; padding: 20px; margin-top: 20px; border-radius: 8px; }
+        .error { background: #fff0f0; color: red; padding: 20px; margin-top: 20px; border-radius: 8px; }
+        .result h2 { margin-top: 0; }
+    </style>
 </head>
 <body>
     <h1>💱 Convertisseur de Devises</h1>
-    <p>Bienvenue ! L'app est en cours de construction.</p>
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <div>
+            <label>Montant :</label><br>
+            <input type="number" name="amount" value="1" min="0.01" step="0.01" required>
+        </div>
+
+        <div style="margin-top: 10px;">
+            <label>De :</label>
+            <select name="from_currency">
+                {% for currency in currencies %}
+                    <option value="{{ currency.code }}">
+                        {{ currency.flag }} {{ currency.code }} — {{ currency.name }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            <label>→ Vers :</label>
+            <select name="to_currency">
+                {% for currency in currencies %}
+                    <option value="{{ currency.code }}" {% if currency.code == 'USD' %}selected{% endif %}>
+                        {{ currency.flag }} {{ currency.code }} — {{ currency.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <br>
+        <button type="submit">Convertir</button>
+    </form>
+
+    {% if error %}
+        <div class="error">⚠️ {{ error }}</div>
+    {% endif %}
+
+    {% if result %}
+        <div class="result">
+            <h2>Résultat</h2>
+            <p style="font-size: 1.3em;">
+                <strong>{{ result.amount }} {{ result.from.flag }} {{ result.from.code }}</strong>
+                =
+                <strong>{{ result.converted }} {{ result.to.flag }} {{ result.to.code }}</strong>
+            </p>
+            <p style="color: #555;">
+                {{ result.from.flag }} {{ result.from.name }} → {{ result.to.flag }} {{ result.to.name }}
+            </p>
+        </div>
+    {% endif %}
+
 </body>
 </html>
