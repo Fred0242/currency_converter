@@ -111,6 +111,48 @@
             </div>
         </div>
     {% endif %}
+    <!-- Historique des conversions -->
+    {% if history %}
+    <div style="margin-top: 36px;">
+        <h2 style="font-size: 1em; color: #555; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px;">
+            <i class="fa-solid fa-clock-rotate-left"></i> Historique récent
+        </h2>
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.92em;">
+            <thead>
+                <tr style="background: #f8f9fa; color: #555;">
+                    <th style="padding: 10px; text-align: left;">De</th>
+                    <th style="padding: 10px; text-align: left;">Vers</th>
+                    <th style="padding: 10px; text-align: right;">Montant</th>
+                    <th style="padding: 10px; text-align: right;">Résultat</th>
+                    <th style="padding: 10px; text-align: right;">Date</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in history %}
+                <tr style="border-bottom: 1px solid #f0f0f0;">
+                    <td style="padding: 10px;">
+                        <img src="https://flagcdn.com/w20/{{ item.from_currency|lower }}.png"
+                             onerror="this.style.display='none'"
+                             style="border-radius:2px; margin-right:4px; vertical-align:middle;">
+                        {{ item.from_currency }}
+                    </td>
+                    <td style="padding: 10px;">
+                        <img src="https://flagcdn.com/w20/{{ item.to_currency|lower }}.png"
+                             onerror="this.style.display='none'"
+                             style="border-radius:2px; margin-right:4px; vertical-align:middle;">
+                        {{ item.to_currency }}
+                    </td>
+                    <td style="padding: 10px; text-align: right;">{{ item.amount }}</td>
+                    <td style="padding: 10px; text-align: right; font-weight: 600; color: #007bff;">{{ item.converted }}</td>
+                    <td style="padding: 10px; text-align: right; color: #999; font-size: 0.85em;">
+                        {{ item.created_at|date:"d/m/Y H:i" }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
 </div>
 
 <script>
