@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Connexion — Currency Converter</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+        }
+        h1 { font-size: 1.5em; color: #1a1a2e; margin-bottom: 8px; }
+        .subtitle { color: #888; font-size: 0.9em; margin-bottom: 28px; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block;
+            font-size: 0.85em;
+            font-weight: 600;
+            color: #555;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .form-group input {
+            width: 100%;
+            border: 1.5px solid #ddd;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 1em;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus { border-color: #007bff; }
+        .btn {
+            width: 100%;
+            padding: 13px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .btn:hover { background: #0056b3; }
+        .link { text-align: center; margin-top: 20px; font-size: 0.9em; color: #888; }
+        .link a { color: #007bff; text-decoration: none; font-weight: 600; }
+        .messages { margin-bottom: 16px; }
+        .msg-error {
+            background: #fff0f0;
+            border-left: 4px solid #e74c3c;
+            color: #c0392b;
+            padding: 10px 14px;
+            border-radius: 6px;
+            font-size: 0.9em;
+        }
+        .errors { color: #e74c3c; font-size: 0.85em; margin-top: 4px; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h1><i class="fa-solid fa-right-to-bracket"></i> Connexion</h1>
+    <p class="subtitle">Accède à ton convertisseur de devises</p>
+
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+            <div class="msg-error">{{ message }}</div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="POST">
+        {% csrf_token %}
+        <div class="form-group">
+            <label><i class="fa-solid fa-user"></i> Nom d'utilisateur</label>
+            <input type="text" name="username" required autofocus>
+            {% if form.username.errors %}
+                <div class="errors">{{ form.username.errors }}</div>
+            {% endif %}
+        </div>
+        <div class="form-group">
+            <label><i class="fa-solid fa-lock"></i> Mot de passe</label>
+            <input type="password" name="password" required>
+        </div>
+        <button type="submit" class="btn">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i>
+            Se connecter
+        </button>
+    </form>
+
+    <div class="link">
+        Pas encore de compte ? <a href="{% url 'register' %}">S'inscrire</a>
+    </div>
+</div>
+</body>
+</html>
