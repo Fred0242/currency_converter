@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from .services import get_exchange_rate, SUPPORTED_CURRENCIES
 from .models import ConversionHistory
@@ -29,9 +29,8 @@ def convert_with_xaf(from_currency, to_currency, amount):
     return None, None
 
 
-@login_required(login_url='login')
 def converter_home(request):
-    """Page principale — accessible uniquement aux utilisateurs connectés."""
+    """Page principale — publique, historique uniquement si connecté."""
     result = None
     error  = None
     currencies_by_code = {c['code']: c for c in SUPPORTED_CURRENCIES}
@@ -44,14 +43,16 @@ def converter_home(request):
         converted, rate = convert_with_xaf(from_currency, to_currency, amount)
 
         if converted is not None:
-            ConversionHistory.objects.create(
-                user=request.user,
-                from_currency=from_currency,
-                to_currency=to_currency,
-                amount=amount,
-                converted=converted,
-                rate=rate,
-            )
+            # Sauvegarde uniquement si l'utilisateur est connecté
+            if request.user.is_authenticated:
+                ConversionHistory.objects.create(
+                    user=request.user,
+                    from_currency=from_currency,
+                    to_currency=to_currency,
+                    amount=amount,
+                    converted=converted,
+                    rate=rate,
+                )
             result = {
                 'from': currencies_by_code[from_currency],
                 'to':   currencies_by_code[to_currency],
@@ -62,8 +63,10 @@ def converter_home(request):
         else:
             error = "Impossible de récupérer les taux de change. Réessaie plus tard."
 
-    # Historique personnel uniquement
-    history = ConversionHistory.objects.filter(user=request.user)[:10]
+    # Historique uniquement si connecté
+    history = []
+    if request.user.is_authenticated:
+        history = ConversionHistory.objects.filter(user=request.user)[:10]
 
     context = {
         'currencies': SUPPORTED_CURRENCIES,

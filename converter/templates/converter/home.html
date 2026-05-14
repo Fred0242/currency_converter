@@ -20,17 +20,34 @@
         <i class="fa-solid fa-money-bill-transfer" style="color:#007bff;"></i>
         Currency Converter
     </span>
-    <div style="display:flex; align-items:center; gap:16px;">
-        <span style="color:#555; font-size:0.9em;">
-            <i class="fa-solid fa-circle-user"></i> {{ request.user.username }}
-        </span>
-        <a href="{% url 'logout' %}" style="background:#f0f2f5; color:#555; padding:8px 16px;
-           border-radius:8px; text-decoration:none; font-size:0.9em; font-weight:600;
-           transition:background 0.2s;">
-            <i class="fa-solid fa-right-from-bracket"></i> Déconnexion
-        </a>
+    <div style="display:flex; align-items:center; gap:12px;">
+        {% if request.user.is_authenticated %}
+            <span style="color:#555; font-size:0.9em;">
+                <i class="fa-solid fa-circle-user"></i> {{ request.user.username }}
+            </span>
+            <a href="{% url 'logout' %}"
+               style="background:#f0f2f5; color:#555; padding:8px 16px;
+                      border-radius:8px; text-decoration:none; font-size:0.9em;
+                      font-weight:600;">
+                <i class="fa-solid fa-right-from-bracket"></i> Déconnexion
+            </a>
+        {% else %}
+            <a href="{% url 'login' %}"
+               style="background:#f0f2f5; color:#555; padding:8px 16px;
+                      border-radius:8px; text-decoration:none; font-size:0.9em;
+                      font-weight:600;">
+                <i class="fa-solid fa-right-to-bracket"></i> Connexion
+            </a>
+            <a href="{% url 'register' %}"
+               style="background:#007bff; color:white; padding:8px 16px;
+                      border-radius:8px; text-decoration:none; font-size:0.9em;
+                      font-weight:600;">
+                <i class="fa-solid fa-user-plus"></i> S'inscrire
+            </a>
+        {% endif %}
     </div>
 </nav>
+<div style="height: 65px;"></div>
 
 {% if messages %}
 <div style="max-width:580px; margin: 10px auto;">
