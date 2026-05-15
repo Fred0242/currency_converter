@@ -14,7 +14,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 import os
 
-# Charge les variables du fichier .env
+
 load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -25,7 +25,7 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0']
 
 
-# Application definition
+
 
 INSTALLED_APPS = [
     'django.contrib.admin',
