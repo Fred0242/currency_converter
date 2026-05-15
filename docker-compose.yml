@@ -1,6 +1,4 @@
 services:
-
-  # Service base de données PostgreSQL
   db:
     image: postgres:16-alpine
     container_name: currency_db
@@ -18,7 +16,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # Service application Django
   web:
     build: .
     container_name: currency_web
