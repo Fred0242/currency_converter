@@ -50,7 +50,7 @@ jobs:
           DB_PORT: 5432
         run: python manage.py test --verbosity=2
 
-      - name:  Vérification des migrations
+      - name: 🗄️ Vérification des migrations manquantes
         env:
           SECRET_KEY: django-insecure-ci-test-key-not-for-production
           DEBUG: True
@@ -59,4 +59,4 @@ jobs:
           DB_PASSWORD: currency_pass_2024
           DB_HOST: localhost
           DB_PORT: 5432
-        run: python manage.py migrate --check
+        run: python manage.py makemigrations --check --dry-run
