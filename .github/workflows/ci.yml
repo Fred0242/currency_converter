@@ -1,0 +1,62 @@
+name: CI — Tests Django
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    name: Tests & Qualité du code
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: currency_converter_test
+          POSTGRES_USER: currency_user
+          POSTGRES_PASSWORD: currency_pass_2024
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name:  Checkout du code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Installation Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: 'pip'
+
+      - name:  Installation des dépendances
+        run: pip install -r requirements.txt
+
+      - name:  Lancement des tests
+        env:
+          SECRET_KEY: django-insecure-ci-test-key-not-for-production
+          DEBUG: True
+          DB_NAME: currency_converter_test
+          DB_USER: currency_user
+          DB_PASSWORD: currency_pass_2024
+          DB_HOST: localhost
+          DB_PORT: 5432
+        run: python manage.py test --verbosity=2
+
+      - name:  Vérification des migrations
+        env:
+          SECRET_KEY: django-insecure-ci-test-key-not-for-production
+          DEBUG: True
+          DB_NAME: currency_converter_test
+          DB_USER: currency_user
+          DB_PASSWORD: currency_pass_2024
+          DB_HOST: localhost
+          DB_PORT: 5432
+        run: python manage.py migrate --check
