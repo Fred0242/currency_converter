@@ -30,7 +30,7 @@ jobs:
       - name:  Checkout du code
         uses: actions/checkout@v4
 
-      - name: 🐍 Installation Python 3.13
+      - name:  Installation Python 3.13
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
@@ -50,7 +50,7 @@ jobs:
           DB_PORT: 5432
         run: python manage.py test --verbosity=2
 
-      - name: 🗄️ Vérification des migrations manquantes
+      - name:  Vérification des migrations manquantes
         env:
           SECRET_KEY: django-insecure-ci-test-key-not-for-production
           DEBUG: True
