@@ -138,13 +138,16 @@
         </button>
     </form>
 
+    <div id="error-container">
     {% if error %}
         <div class="error-box">
             <i class="fa-solid fa-triangle-exclamation"></i>
             {{ error }}
         </div>
     {% endif %}
+    </div>
 
+    <div id="result-container">
     {% if result %}
         <div class="result-box">
             <div class="label"><i class="fa-solid fa-check-circle"></i> Résultat</div>
@@ -161,9 +164,11 @@
             </div>
         </div>
     {% endif %}
+    </div>
+
     <!-- Historique des conversions -->
+    <div id="history-container" style="margin-top: 36px;">
     {% if history %}
-    <div style="margin-top: 36px;">
         <h2 style="font-size: 1em; color: #555; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px;">
             <i class="fa-solid fa-clock-rotate-left"></i> Historique récent
         </h2>
@@ -177,7 +182,7 @@
                     <th style="padding: 10px; text-align: right;">Date</th>
                 </tr>
             </thead>
-            <tbody>
+            <tbody id="history-body">
                 {% for item in history %}
                 <tr style="border-bottom: 1px solid #f0f0f0;">
                     <td style="padding: 10px;">
@@ -201,11 +206,21 @@
                 {% endfor %}
             </tbody>
         </table>
-    </div>
     {% endif %}
+    </div>
 </div>
 
 <script>
+    const isAuthenticated = {{ request.user.is_authenticated|yesno:"true,false" }};
+    const currentUsername = "{{ request.user.username|default:'anonymous' }}";
+    const azureFunctionBaseUrl = "{{ azure_function_base_url }}";
+    const convertUrl = azureFunctionBaseUrl
+        ? azureFunctionBaseUrl + "/api/convert"
+        : "{% url 'convert-api' %}";
+    const historyUrl = azureFunctionBaseUrl
+        ? azureFunctionBaseUrl + "/api/history/" + encodeURIComponent(currentUsername)
+        : "{% url 'history-api' %}";
+
     function updateFlag(direction) {
         const select = document.getElementById('select-' + direction);
         const img = document.getElementById('flag-' + direction);
@@ -213,6 +228,111 @@
         const country = selected.getAttribute('data-country');
         img.src = 'https://flagcdn.com/w40/' + country + '.png';
     }
+
+    function getCookie(name) {
+        const match = document.cookie.match('(^|;)\\s*' + name + '\\s*=\\s*([^;]+)');
+        return match ? decodeURIComponent(match[2]) : null;
+    }
+
+    function renderResult(result) {
+        document.getElementById('result-container').innerHTML = `
+            <div class="result-box">
+                <div class="label"><i class="fa-solid fa-check-circle"></i> Résultat</div>
+                <div class="amount-display">
+                    <img src="https://flagcdn.com/w40/${result.from.country}.png" alt="${result.from.code}">
+                    ${result.amount} ${result.from.code}
+                    <i class="fa-solid fa-equals" style="font-size:0.7em; color:#007bff;"></i>
+                    <img src="https://flagcdn.com/w40/${result.to.country}.png" alt="${result.to.code}">
+                    ${result.converted} ${result.to.code}
+                </div>
+                <div class="rate-info">
+                    <i class="fa-solid fa-chart-line"></i>
+                    ${result.from.name} → ${result.to.name}
+                </div>
+            </div>`;
+    }
+
+    function renderError(message) {
+        document.getElementById('error-container').innerHTML = `
+            <div class="error-box">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                ${message}
+            </div>`;
+    }
+
+    async function loadHistory() {
+        if (!isAuthenticated) return;
+        const response = await fetch(historyUrl);
+        if (!response.ok) return;
+        const data = await response.json();
+        const rows = data.history.map(item => `
+            <tr style="border-bottom: 1px solid #f0f0f0;">
+                <td style="padding: 10px;">
+                    <img src="https://flagcdn.com/w20/${item.from_currency.toLowerCase()}.png"
+                         onerror="this.style.display='none'"
+                         style="border-radius:2px; margin-right:4px; vertical-align:middle;">
+                    ${item.from_currency}
+                </td>
+                <td style="padding: 10px;">
+                    <img src="https://flagcdn.com/w20/${item.to_currency.toLowerCase()}.png"
+                         onerror="this.style.display='none'"
+                         style="border-radius:2px; margin-right:4px; vertical-align:middle;">
+                    ${item.to_currency}
+                </td>
+                <td style="padding: 10px; text-align: right;">${item.amount}</td>
+                <td style="padding: 10px; text-align: right; font-weight: 600; color: #007bff;">${item.converted}</td>
+                <td style="padding: 10px; text-align: right; color: #999; font-size: 0.85em;">${item.created_at}</td>
+            </tr>`).join('');
+        document.getElementById('history-container').innerHTML = `
+            <h2 style="font-size: 1em; color: #555; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 14px;">
+                <i class="fa-solid fa-clock-rotate-left"></i> Historique récent
+            </h2>
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.92em;">
+                <thead>
+                    <tr style="background: #f8f9fa; color: #555;">
+                        <th style="padding: 10px; text-align: left;">De</th>
+                        <th style="padding: 10px; text-align: left;">Vers</th>
+                        <th style="padding: 10px; text-align: right;">Montant</th>
+                        <th style="padding: 10px; text-align: right;">Résultat</th>
+                        <th style="padding: 10px; text-align: right;">Date</th>
+                    </tr>
+                </thead>
+                <tbody id="history-body">${rows}</tbody>
+            </table>`;
+    }
+
+    document.getElementById('converter-form').addEventListener('submit', async function (event) {
+        event.preventDefault();
+        document.getElementById('error-container').innerHTML = '';
+
+        const payload = {
+            username: currentUsername,
+            amount: document.querySelector('[name="amount"]').value,
+            from_currency: document.getElementById('select-from').value,
+            to_currency: document.getElementById('select-to').value,
+        };
+
+        const headers = { 'Content-Type': 'application/json' };
+        if (!azureFunctionBaseUrl) {
+            headers['X-CSRFToken'] = getCookie('csrftoken');
+        }
+
+        const response = await fetch(convertUrl, {
+            method: 'POST',
+            headers: headers,
+            body: JSON.stringify(payload),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            renderError(data.error || "Une erreur est survenue.");
+            return;
+        }
+
+        renderResult(data);
+        loadHistory();
+    });
 </script>
 </body>
-</html> 
+</html>

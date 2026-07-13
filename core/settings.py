@@ -22,6 +22,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('SECRET_KEY')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
+# URL de base de l'Azure Function (HTTP trigger) qui lit/écrit l'historique
+# des conversions dans Azure Table Storage. Vide = on utilise l'API Django locale.
+AZURE_FUNCTION_BASE_URL = os.getenv('AZURE_FUNCTION_BASE_URL', '').rstrip('/')
+
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', '0.0.0.0', '.onrender.com']
 
 CSRF_TRUSTED_ORIGINS = [

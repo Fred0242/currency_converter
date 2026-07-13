@@ -1,3 +1,4 @@
+import json
 from django.test import TestCase, Client
 from django.urls import reverse
 from .services import get_exchange_rate, SUPPORTED_CURRENCIES
@@ -65,6 +66,66 @@ class ConverterViewTest(TestCase):
         })
         # L'historique doit contenir une entrée
         self.assertEqual(ConversionHistory.objects.filter(user=user).count(), 1)
+
+
+class ConverterApiTest(TestCase):
+    """Tests des endpoints HTTP JSON (API)."""
+
+    def setUp(self):
+        self.client = Client()
+
+    def test_convert_api_without_login_does_not_save_history(self):
+        """POST /api/convert/ calcule le résultat mais ne sauvegarde rien sans login."""
+        response = self.client.post(
+            reverse('convert-api'),
+            data=json.dumps({'from_currency': 'EUR', 'to_currency': 'USD', 'amount': 100}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('converted', response.json())
+        self.assertEqual(ConversionHistory.objects.count(), 0)
+
+    def test_convert_api_with_login_saves_history(self):
+        """POST /api/convert/ sauvegarde l'historique pour un utilisateur connecté."""
+        user = User.objects.create_user(username='apiuser', password='testpass123')
+        self.client.login(username='apiuser', password='testpass123')
+
+        response = self.client.post(
+            reverse('convert-api'),
+            data=json.dumps({'from_currency': 'EUR', 'to_currency': 'USD', 'amount': 100}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(ConversionHistory.objects.filter(user=user).count(), 1)
+
+    def test_convert_api_rejects_unknown_currency(self):
+        """POST /api/convert/ renvoie une erreur 400 pour une devise inconnue."""
+        response = self.client.post(
+            reverse('convert-api'),
+            data=json.dumps({'from_currency': 'XXX', 'to_currency': 'USD', 'amount': 100}),
+            content_type='application/json',
+        )
+        self.assertEqual(response.status_code, 400)
+
+    def test_history_api_requires_login(self):
+        """GET /api/history/ redirige si l'utilisateur n'est pas connecté."""
+        response = self.client.get(reverse('history-api'))
+        self.assertEqual(response.status_code, 302)
+
+    def test_history_api_returns_user_history(self):
+        """GET /api/history/ renvoie l'historique JSON de l'utilisateur connecté."""
+        user = User.objects.create_user(username='historyuser', password='testpass123')
+        ConversionHistory.objects.create(
+            user=user, from_currency='EUR', to_currency='USD',
+            amount=100, converted=108, rate=1.08,
+        )
+        self.client.login(username='historyuser', password='testpass123')
+
+        response = self.client.get(reverse('history-api'))
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        self.assertEqual(len(data['history']), 1)
+        self.assertEqual(data['history'][0]['from_currency'], 'EUR')
 
 
 class UsersViewTest(TestCase):
