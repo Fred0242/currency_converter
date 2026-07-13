@@ -29,8 +29,6 @@ CSRF_TRUSTED_ORIGINS = [
 ]
 
 
-
-
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -126,9 +124,6 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
-
-# Sécurité production
-CSRF_TRUSTED_ORIGINS = [] 
 
 # Authentification
 LOGIN_URL = 'login'
