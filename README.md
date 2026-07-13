@@ -16,9 +16,16 @@
 
 Application web de conversion de devises en temps réel, développée avec Python/Django et déployée en production sur Render.
 
-###  Démo en ligne
+###  Lancer le projet (Docker)
 
- **[https://currency-converter-n35g.onrender.com](https://currency-converter-n35g.onrender.com)**
+```bash
+git clone git@github.com:Fred0242/currency-converter.git
+cd currency-converter
+cp .env.example .env
+# Remplis les variables dans .env
+docker compose up --build
+# Accède à l'app sur http://127.0.0.1:8000
+```
 
 ---
 
@@ -190,9 +197,16 @@ env $(cat .env.test | xargs) python manage.py test
 
 Applicazione web per la conversione di valute in tempo reale, sviluppata con Python/Django e distribuita in produzione su Render.
 
-###  Demo online
+###  Avviare il progetto (Docker)
 
- **[https://currency-converter-n35g.onrender.com](https://currency-converter-n35g.onrender.com)**
+```bash
+git clone git@github.com:Fred0242/currency-converter.git
+cd currency-converter
+cp .env.example .env
+# Compila le variabili in .env
+docker compose up --build
+# Accedi all'app su http://127.0.0.1:8000
+```
 
 ---
 
