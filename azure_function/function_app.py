@@ -6,11 +6,15 @@ from datetime import datetime, timezone
 
 import azure.functions as func
 import requests
-from azure.data.tables import TableServiceClient
 
 app = func.FunctionApp()
 
-TABLE_NAME = "ConversionHistory"
+DATABASE_NAME = "CurrencyConverterDB"
+CONTAINER_NAME = "ConversionHistory"
+QUEUE_NAME = "conversion-queue"
+COSMOS_CONNECTION = "CosmosDbConnectionSetting"
+STORAGE_CONNECTION = "AzureWebJobsStorage"
+
 XAF_PER_EUR = 655.957
 
 SUPPORTED_CURRENCIES = [
@@ -51,16 +55,12 @@ def convert_with_xaf(from_currency, to_currency, amount):
     return round(amount * rate, 2), rate
 
 
-def get_table_client():
-    connection_string = os.environ["AzureWebJobsStorage"]
-    service = TableServiceClient.from_connection_string(connection_string)
-    return service.create_table_if_not_exists(TABLE_NAME)
-
-
 @app.function_name(name="convert")
 @app.route(route="convert", methods=["POST"], auth_level=func.AuthLevel.ANONYMOUS)
-def convert(req: func.HttpRequest) -> func.HttpResponse:
-    """HTTP trigger — écrit une conversion dans Azure Table Storage."""
+@app.queue_output(arg_name="msg", queue_name=QUEUE_NAME, connection=STORAGE_CONNECTION)
+def convert(req: func.HttpRequest, msg: func.Out[str]) -> func.HttpResponse:
+    """HTTP trigger — calcule la conversion et dépose un message sur la queue
+    (écriture différée, persistée plus tard par la fonction persist_conversion)."""
     try:
         body = req.get_json()
         username = (body.get('username') or 'anonymous').strip() or 'anonymous'
@@ -88,20 +88,17 @@ def convert(req: func.HttpRequest) -> func.HttpResponse:
             status_code=502, mimetype="application/json",
         )
 
-    created_at = datetime.now(timezone.utc)
-    row_key = f"{9999999999 - int(created_at.timestamp()):010d}-{uuid.uuid4()}"
+    created_at = datetime.now(timezone.utc).isoformat()
 
-    table = get_table_client()
-    table.create_entity({
-        'PartitionKey': username,
-        'RowKey': row_key,
+    msg.set(json.dumps({
+        'username': username,
         'from_currency': from_currency,
         'to_currency': to_currency,
         'amount': amount,
         'converted': converted,
         'rate': rate,
-        'created_at': created_at.isoformat(),
-    })
+        'created_at': created_at,
+    }))
 
     return func.HttpResponse(
         json.dumps({
@@ -115,32 +112,47 @@ def convert(req: func.HttpRequest) -> func.HttpResponse:
     )
 
 
+@app.function_name(name="persist_conversion")
+@app.queue_trigger(arg_name="msg", queue_name=QUEUE_NAME, connection=STORAGE_CONNECTION)
+@app.cosmos_db_output(
+    arg_name="document",
+    database_name=DATABASE_NAME,
+    container_name=CONTAINER_NAME,
+    connection=COSMOS_CONNECTION,
+    create_if_not_exists=True,
+    partition_key="/username",
+)
+def persist_conversion(msg: func.QueueMessage, document: func.Out[func.Document]) -> None:
+    """Queue trigger — consomme un message et persiste la conversion sur Cosmos DB."""
+    data = json.loads(msg.get_body().decode('utf-8'))
+    data['id'] = str(uuid.uuid4())
+    document.set(func.Document.from_dict(data))
+    logging.info(f"Conversion persistée sur Cosmos DB pour {data['username']}")
+
+
 @app.function_name(name="history")
 @app.route(route="history/{username}", methods=["GET"], auth_level=func.AuthLevel.ANONYMOUS)
-def history(req: func.HttpRequest) -> func.HttpResponse:
-    """HTTP trigger — lit l'historique des conversions depuis Azure Table Storage."""
-    username = req.route_params.get('username')
-
-    table = get_table_client()
-    entities = table.query_entities(
-        query_filter="PartitionKey eq @username",
-        parameters={"username": username},
-        select=["from_currency", "to_currency", "amount", "converted", "created_at"],
-    )
-
-    items = []
-    for entity in entities:
-        items.append({
-            'from_currency': entity['from_currency'],
-            'to_currency': entity['to_currency'],
-            'amount': entity['amount'],
-            'converted': entity['converted'],
-            'created_at': entity['created_at'],
-        })
-        if len(items) >= 10:
-            break
+@app.cosmos_db_input(
+    arg_name="items",
+    database_name=DATABASE_NAME,
+    container_name=CONTAINER_NAME,
+    connection=COSMOS_CONNECTION,
+    sql_query="SELECT TOP 10 * FROM c WHERE c.username = {username} ORDER BY c.created_at DESC",
+)
+def history(req: func.HttpRequest, items: func.DocumentList) -> func.HttpResponse:
+    """HTTP trigger — lit l'historique des conversions depuis Cosmos DB (binding d'entrée)."""
+    history_items = [
+        {
+            'from_currency': item['from_currency'],
+            'to_currency': item['to_currency'],
+            'amount': item['amount'],
+            'converted': item['converted'],
+            'created_at': item['created_at'],
+        }
+        for item in items
+    ]
 
     return func.HttpResponse(
-        json.dumps({'history': items}),
+        json.dumps({'history': history_items}),
         status_code=200, mimetype="application/json",
     )

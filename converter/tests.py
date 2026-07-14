@@ -1,4 +1,5 @@
 import json
+from unittest.mock import patch
 from django.test import TestCase, Client
 from django.urls import reverse
 from .services import get_exchange_rate, SUPPORTED_CURRENCIES
@@ -43,7 +44,8 @@ class ConverterViewTest(TestCase):
         response = self.client.get(reverse('converter-home'))
         self.assertContains(response, '<form')
 
-    def test_conversion_post_without_login(self):
+    @patch('converter.views.get_exchange_rate', return_value=1.08)
+    def test_conversion_post_without_login(self, mock_get_exchange_rate):
         """Une conversion sans login fonctionne mais ne sauvegarde pas."""
         response = self.client.post(reverse('converter-home'), {
             'from_currency': 'EUR',
@@ -54,7 +56,8 @@ class ConverterViewTest(TestCase):
         # Pas d'historique sauvegardé sans login
         self.assertEqual(ConversionHistory.objects.count(), 0)
 
-    def test_conversion_post_with_login_saves_history(self):
+    @patch('converter.views.get_exchange_rate', return_value=1.08)
+    def test_conversion_post_with_login_saves_history(self, mock_get_exchange_rate):
         """Une conversion avec login sauvegarde l'historique."""
         user = User.objects.create_user(username='testuser', password='testpass123')
         self.client.login(username='testuser', password='testpass123')
@@ -74,7 +77,8 @@ class ConverterApiTest(TestCase):
     def setUp(self):
         self.client = Client()
 
-    def test_convert_api_without_login_does_not_save_history(self):
+    @patch('converter.views.get_exchange_rate', return_value=1.08)
+    def test_convert_api_without_login_does_not_save_history(self, mock_get_exchange_rate):
         """POST /api/convert/ calcule le résultat mais ne sauvegarde rien sans login."""
         response = self.client.post(
             reverse('convert-api'),
@@ -85,7 +89,8 @@ class ConverterApiTest(TestCase):
         self.assertIn('converted', response.json())
         self.assertEqual(ConversionHistory.objects.count(), 0)
 
-    def test_convert_api_with_login_saves_history(self):
+    @patch('converter.views.get_exchange_rate', return_value=1.08)
+    def test_convert_api_with_login_saves_history(self, mock_get_exchange_rate):
         """POST /api/convert/ sauvegarde l'historique pour un utilisateur connecté."""
         user = User.objects.create_user(username='apiuser', password='testpass123')
         self.client.login(username='apiuser', password='testpass123')
